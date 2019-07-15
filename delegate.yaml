@@ -1,0 +1,113 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: harness-delegate
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: harness-delegate-cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: harness-delegate
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rancher-k8s-cluster-d-proxy
+  namespace: harness-delegate
+type: Opaque
+data:
+  # Enter base64 encoded username and password, if needed
+  PROXY_USER: ""
+  PROXY_PASSWORD: ""
+
+---
+
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  labels:
+    harness.io/app: harness-delegate
+    harness.io/account: jsottt
+    harness.io/name: rancher-k8s-cluster-d
+  name: rancher-k8s-cluster-d-jsottt
+  namespace: harness-delegate
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      harness.io/app: harness-delegate
+      harness.io/account: jsottt
+      harness.io/name: rancher-k8s-cluster-d
+  serviceName: ""
+  template:
+    metadata:
+      labels:
+        harness.io/app: harness-delegate
+        harness.io/account: jsottt
+        harness.io/name: rancher-k8s-cluster-d
+    spec:
+      containers:
+      - image: harness/delegate:latest
+        imagePullPolicy: Always
+        name: harness-delegate-instance
+        resources:
+          limits:
+            cpu: "1"
+            memory: "4Gi"
+        env:
+        - name: ACCOUNT_ID
+          value: 5jsO5tTtQBaaMvGBnJoTzQ
+        - name: ACCOUNT_SECRET
+          value: cc37896aa3966a016b5121767fd3f443
+        - name: MANAGER_HOST_AND_PORT
+          value: https://app.harness.io/gratis
+        - name: WATCHER_STORAGE_URL
+          value: https://app.harness.io/storage/wingswatchers
+        - name: WATCHER_CHECK_LOCATION
+          value: watcherprod.txt
+        - name: DELEGATE_STORAGE_URL
+          value: https://app.harness.io/storage/wingsdelegates
+        - name: DELEGATE_CHECK_LOCATION
+          value: delegatefree.txt
+        - name: DEPLOY_MODE
+          value: KUBERNETES
+        - name: DELEGATE_NAME
+          value: rancher-k8s-cluster-d
+        - name: DELEGATE_PROFILE
+          value: ""
+        - name: PROXY_HOST
+          value: ""
+        - name: PROXY_PORT
+          value: ""
+        - name: PROXY_SCHEME
+          value: ""
+        - name: NO_PROXY
+          value: ""
+        - name: PROXY_MANAGER
+          value: "true"
+        - name: PROXY_USER
+          valueFrom:
+            secretKeyRef:
+              name: rancher-k8s-cluster-d-proxy
+              key: PROXY_USER
+        - name: PROXY_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: rancher-k8s-cluster-d-proxy
+              key: PROXY_PASSWORD
+        - name: POLL_FOR_TASKS
+          value: "false"
+        - name: HELM_DESIRED_VERSION
+          value: ""
+      restartPolicy: Always
